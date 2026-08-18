@@ -1,0 +1,9 @@
+plt.figure(figsize=(10, 6))
+plt.plot(df_income['Month'], df_income['Income'], marker='o', linestyle='-', color='skyblue')
+plt.title('Simulated Shop Monthly Income (2023)')
+plt.xlabel('Month')
+plt.ylabel('Income ($)')
+plt.grid(True)
+plt.xticks(rotation=45) # Rotate month labels for better readability
+plt.tight_layout()
+plt.show()
