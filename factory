@@ -1,0 +1,9 @@
+plt.figure(figsize=(14, 7))
+plt.plot(df_factory_production['Month'], df_factory_production['ProductionUnits'], marker='o', linestyle='-', color='purple')
+plt.title('Simulated Factory Monthly Production Trend (2022-2023)')
+plt.xlabel('Month')
+plt.ylabel('Production Units')
+plt.grid(True)
+plt.xticks(rotation=45, ha='right') # Rotate month labels for better readability
+plt.tight_layout()
+plt.show()
