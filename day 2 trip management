@@ -1,0 +1,341 @@
+Transport Management System Design
+To address the requirements:
+
+View buses
+View routes
+Assign students to buses
+Track bus capacity
+Manage transport fees
+We can design a system with classes representing Bus, Route, and Student. A central TransportManager class will handle the operations and relationships between these entities.
+
+
+[1]
+0s
+class Bus:
+    def __init__(self, bus_id, capacity):
+        self.bus_id = bus_id
+        self.capacity = capacity
+        self.students_assigned = []
+
+    def assign_student(self, student_id):
+        if len(self.students_assigned) < self.capacity:
+            self.students_assigned.append(student_id)
+            print(f"Student {student_id} assigned to Bus {self.bus_id}.")
+            return True
+        else:
+            print(f"Bus {self.bus_id} is at full capacity.")
+            return False
+
+    def remove_student(self, student_id):
+        if student_id in self.students_assigned:
+            self.students_assigned.remove(student_id)
+            print(f"Student {student_id} removed from Bus {self.bus_id}.")
+            return True
+        else:
+            print(f"Student {student_id} not found on Bus {self.bus_id}.")
+            return False
+
+    def get_occupancy(self):
+        return len(self.students_assigned)
+
+    def get_remaining_capacity(self):
+        return self.capacity - len(self.students_assigned)
+
+    def __str__(self):
+        return f"Bus ID: {self.bus_id}, Capacity: {self.capacity}, Occupancy: {self.get_occupancy()}, Remaining: {self.get_remaining_capacity()}"
+
+class Route:
+    def __init__(self, route_id, name, stops):
+        self.route_id = route_id
+        self.name = name
+        self.stops = stops # List of stop names/locations
+        self.assigned_buses = []
+
+    def assign_bus(self, bus_id):
+        if bus_id not in self.assigned_buses:
+            self.assigned_buses.append(bus_id)
+            print(f"Bus {bus_id} assigned to Route {self.route_id}.")
+        else:
+            print(f"Bus {bus_id} is already assigned to Route {self.route_id}.")
+
+    def __str__(self):
+        return f"Route ID: {self.route_id}, Name: {self.name}, Stops: {', '.join(self.stops)}"
+
+class Student:
+    def __init__(self, student_id, name, grade, fees_due=0.0):
+        self.student_id = student_id
+        self.name = name
+        self.grade = grade
+        self.assigned_bus_id = None
+        self.fees_due = fees_due
+        self.fees_paid = 0.0
+
+    def assign_bus(self, bus_id):
+        self.assigned_bus_id = bus_id
+
+    def pay_fees(self, amount):
+        if amount > 0:
+            self.fees_paid += amount
+            self.fees_due = max(0, self.fees_due - amount)
+            print(f"Fees paid for {self.name}: {amount}. Remaining due: {self.fees_due}.")
+        else:
+            print("Payment amount must be positive.")
+
+    def __str__(self):
+        return f"Student ID: {self.student_id}, Name: {self.name}, Bus: {self.assigned_bus_id or 'N/A'}, Fees Due: {self.fees_due}"
+Transport Manager Class
+This class will act as the central hub to manage all buses, routes, and student assignments.
+
+
+[2]
+0s
+class TransportManager:
+    def __init__(self):
+        self.buses = {}
+        self.routes = {}
+        self.students = {}
+
+    def add_bus(self, bus_id, capacity):
+        if bus_id not in self.buses:
+            self.buses[bus_id] = Bus(bus_id, capacity)
+            print(f"Bus {bus_id} added.")
+        else:
+            print(f"Bus {bus_id} already exists.")
+
+    def add_route(self, route_id, name, stops):
+        if route_id not in self.routes:
+            self.routes[route_id] = Route(route_id, name, stops)
+            print(f"Route {route_id} added.")
+        else:
+            print(f"Route {route_id} already exists.")
+
+    def add_student(self, student_id, name, grade, fees_due=0.0):
+        if student_id not in self.students:
+            self.students[student_id] = Student(student_id, name, grade, fees_due)
+            print(f"Student {student_id} added.")
+        else:
+            print(f"Student {student_id} already exists.")
+
+    def assign_student_to_bus(self, student_id, bus_id):
+        if student_id in self.students and bus_id in self.buses:
+            student = self.students[student_id]
+            bus = self.buses[bus_id]
+
+            # If student was previously assigned to another bus, remove them first
+            if student.assigned_bus_id and student.assigned_bus_id != bus_id:
+                prev_bus = self.buses[student.assigned_bus_id]
+                prev_bus.remove_student(student_id)
+
+            if bus.assign_student(student_id):
+                student.assign_bus(bus_id)
+                print(f"Student {student_id} successfully assigned to bus {bus_id}.")
+            else:
+                print(f"Could not assign student {student_id} to bus {bus_id} due to capacity.")
+        else:
+            print("Invalid student ID or bus ID.")
+
+    def view_buses(self):
+        if not self.buses:
+            print("No buses registered.")
+            return
+        print("\n--- All Buses ---")
+        for bus_id, bus in self.buses.items():
+            print(bus)
+
+    def view_routes(self):
+        if not self.routes:
+            print("No routes registered.")
+            return
+        print("\n--- All Routes ---")
+        for route_id, route in self.routes.items():
+            print(route)
+            if route.assigned_buses:
+                print(f"  Assigned Buses: {', '.join(route.assigned_buses)}")
+            else:
+                print("  No buses assigned.")
+
+    def view_students(self):
+        if not self.students:
+            print("No students registered.")
+            return
+        print("\n--- All Students ---")
+        for student_id, student in self.students.items():
+            print(student)
+
+    def track_bus_capacity(self, bus_id):
+        if bus_id in self.buses:
+            bus = self.buses[bus_id]
+            print(f"\nBus {bus_id} - Occupancy: {bus.get_occupancy()}/{bus.capacity}, Remaining Capacity: {bus.get_remaining_capacity()}")
+        else:
+            print(f"Bus {bus_id} not found.")
+
+    def manage_fees(self, student_id, amount, action='pay'):
+        if student_id in self.students:
+            student = self.students[student_id]
+            if action == 'pay':
+                student.pay_fees(amount)
+            elif action == 'set_due':
+                student.fees_due = amount
+                print(f"Fees due for {student.name} set to {amount}.")
+            else:
+                print("Invalid fee action. Use 'pay' or 'set_due'.")
+        else:
+            print(f"Student {student_id} not found.")
+Example Usage
+Here's how you can use the TransportManager to perform the operations:
+
+
+[3]
+0s
+# Initialize the transport manager
+tm = TransportManager()
+
+# 1. Add Buses
+tm.add_bus('B001', 50)
+tm.add_bus('B002', 30)
+tm.add_bus('B003', 45)
+
+# 2. Add Routes
+tm.add_route('R01', 'North City Route', ['Stop A', 'Stop B', 'Stop C'])
+tm.add_route('R02', 'South Suburb Route', ['Stop X', 'Stop Y'])
+
+# Assign buses to routes (optional, but good for tracking)
+tm.routes['R01'].assign_bus('B001')
+tm.routes['R02'].assign_bus('B002')
+
+# 3. Add Students
+tm.add_student('S101', 'Alice Smith', 'Grade 5', fees_due=150.0)
+tm.add_student('S102', 'Bob Johnson', 'Grade 7', fees_due=100.0)
+tm.add_student('S103', 'Charlie Brown', 'Grade 6', fees_due=150.0)
+tm.add_student('S104', 'Diana Prince', 'Grade 8', fees_due=120.0)
+tm.add_student('S105', 'Clark Kent', 'Grade 5', fees_due=150.0)
+
+# 4. Assign students to buses
+tm.assign_student_to_bus('S101', 'B001')
+tm.assign_student_to_bus('S102', 'B001')
+tm.assign_student_to_bus('S103', 'B002')
+tm.assign_student_to_bus('S104', 'B001')
+tm.assign_student_to_bus('S105', 'B002')
+
+# 5. View Buses
+tm.view_buses()
+
+# 6. View Routes
+tm.view_routes()
+
+# 7. View Students
+tm.view_students()
+
+# 8. Track Bus Capacity
+tm.track_bus_capacity('B001')
+tm.track_bus_capacity('B002')
+tm.track_bus_capacity('B003')
+
+# 9. Manage Transport Fees
+tm.manage_fees('S101', 50.0, 'pay')
+tm.manage_fees('S102', 100.0, 'pay')
+tm.manage_fees('S103', 200.0, 'pay') # Overpayment handled by max(0, ...)
+
+tm.view_students() # Check updated fees
+Bus B001 added.
+Bus B002 added.
+Bus B003 added.
+Route R01 added.
+Route R02 added.
+Bus B001 assigned to Route R01.
+Bus B002 assigned to Route R02.
+Student S101 added.
+Student S102 added.
+Student S103 added.
+Student S104 added.
+Student S105 added.
+Student S101 assigned to Bus B001.
+Student S101 successfully assigned to bus B001.
+Student S102 assigned to Bus B001.
+Student S102 successfully assigned to bus B001.
+Student S103 assigned to Bus B002.
+Student S103 successfully assigned to bus B002.
+Student S104 assigned to Bus B001.
+Student S104 successfully assigned to bus B001.
+Student S105 assigned to Bus B002.
+Student S105 successfully assigned to bus B002.
+
+--- All Buses ---
+Bus ID: B001, Capacity: 50, Occupancy: 3, Remaining: 47
+Bus ID: B002, Capacity: 30, Occupancy: 2, Remaining: 28
+Bus ID: B003, Capacity: 45, Occupancy: 0, Remaining: 45
+
+--- All Routes ---
+Route ID: R01, Name: North City Route, Stops: Stop A, Stop B, Stop C
+  Assigned Buses: B001
+Route ID: R02, Name: South Suburb Route, Stops: Stop X, Stop Y
+  Assigned Buses: B002
+
+--- All Students ---
+Student ID: S101, Name: Alice Smith, Bus: B001, Fees Due: 150.0
+Student ID: S102, Name: Bob Johnson, Bus: B001, Fees Due: 100.0
+Student ID: S103, Name: Charlie Brown, Bus: B002, Fees Due: 150.0
+Student ID: S104, Name: Diana Prince, Bus: B001, Fees Due: 120.0
+Student ID: S105, Name: Clark Kent, Bus: B002, Fees Due: 150.0
+
+Bus B001 - Occupancy: 3/50, Remaining Capacity: 47
+
+Bus B002 - Occupancy: 2/30, Remaining Capacity: 28
+
+Bus B003 - Occupancy: 0/45, Remaining Capacity: 45
+Fees paid for Alice Smith: 50.0. Remaining due: 100.0.
+Fees paid for Bob Johnson: 100.0. Remaining due: 0.
+Fees paid for Charlie Brown: 200.0. Remaining due: 0.
+
+--- All Students ---
+Student ID: S101, Name: Alice Smith, Bus: B001, Fees Due: 100.0
+Student ID: S102, Name: Bob Johnson, Bus: B001, Fees Due: 0
+Student ID: S103, Name: Charlie Brown, Bus: B002, Fees Due: 0
+Student ID: S104, Name: Diana Prince, Bus: B001, Fees Due: 120.0
+Student ID: S105, Name: Clark Kent, Bus: B002, Fees Due: 150.0
+Conceptual Diagram (Flow)
+Here's a simple conceptual flow of how the system interacts:
+
+graph TD
+    A[Transport Manager] --> B{Buses}
+    A --> C{Routes}
+    A --> D{Students}
+
+    B --> B1[Bus 1]
+    B --> B2[Bus 2]
+
+    C --> C1[Route 1]
+    C --> C2[Route 2]
+
+    D --> D1[Student 1]
+    D --> D2[Student 2]
+
+    B1 -- assigned_students --> D1
+    B1 -- assigned_students --> D2
+
+    C1 -- assigned_buses --> B1
+
+    A -- "add/view/manage" --> B
+    A -- "add/view/manage" --> C
+    A -- "add/view/manage" --> D
+
+    A -- "assign_student_to_bus" --> D
+    A -- "assign_student_to_bus" --> B
+
+    D -- "pay_fees" --> A
+Explanation of the Diagram:
+
+Transport Manager: The central entity that orchestrates all operations.
+Buses, Routes, Students: These are the core data entities managed by the Transport Manager.
+Relationships:
+Students are assigned to Buses: Each student can be linked to a specific bus.
+Buses are assigned to Routes: Each route can have one or more buses serving it.
+Operations: The Transport Manager provides functions to:
+Add, view, and manage Buses, Routes, and Students.
+Assign students to buses (which also updates bus capacity).
+Manage transport fees for students.
+This provides a basic, object-oriented structure to handle the requirements. You can further expand this by adding features like persistence (saving data to files/database), more complex route planning, dynamic capacity adjustments, and a user interface.
+
+Colab paid products
+-
+Cancel contracts here
